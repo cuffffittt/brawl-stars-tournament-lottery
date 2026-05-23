@@ -1,0 +1,12 @@
+{
+  "name": "brawl-stars-lottery-sync",
+  "version": "1.0.0",
+  "private": true,
+  "description": "荒野亂鬥賽事抽籤與 BO3 同步計分系統",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>荒野亂鬥賽事抽籤系統</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101418;
+      --surface: #171e24;
+      --surface-2: #202932;
+      --line: #34424d;
+      --text: #f3f7f8;
+      --muted: #9caab2;
+      --gold: #f2c14e;
+      --teal: #4ecdc4;
+      --coral: #ff6b5f;
+      --green: #7bd88f;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(78, 205, 196, 0.16), transparent 34%),
+        radial-gradient(circle at 90% 15%, rgba(242, 193, 78, 0.14), transparent 28%),
+        linear-gradient(135deg, #0f1418 0%, #172027 58%, #101418 100%);
+      color: var(--text);
+      padding: 28px 16px 40px;
+    }
+
+    button, select {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-end;
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.85rem, 4vw, 3.25rem);
+      letter-spacing: 0;
+      line-height: 1.08;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin: 0;
+      line-height: 1.7;
+      max-width: 760px;
+    }
+
+    .rule-pill {
+      flex: 0 0 auto;
+      border: 1px solid rgba(242, 193, 78, 0.45);
+      color: var(--gold);
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-weight: 800;
+      background: rgba(242, 193, 78, 0.08);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .rail, .panel, .result-card, .history-row {
+      background: rgba(23, 30, 36, 0.86);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .rail {
+      border-radius: 8px;
+      padding: 12px;
+      position: sticky;
+      top: 18px;
+    }
+
+    .stage-btn {
+      width: 100%;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      padding: 13px 12px;
+      cursor: pointer;
+      text-align: left;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stage-btn:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+    }
+
+    .stage-btn.active {
+      background: rgba(78, 205, 196, 0.12);
+      border-color: rgba(78, 205, 196, 0.46);
+      color: var(--teal);
+      font-weight: 800;
+    }
+
+    .stage-count {
+      min-width: 28px;
+      height: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      font-size: 0.78rem;
+    }
+
+    .panel {
+      border-radius: 8px;
+      padding: clamp(18px, 3vw, 28px);
+      margin-bottom: 18px;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .eyebrow {
+      color: var(--teal);
+      font-size: 0.78rem;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 6px;
+    }
+
+    h2, h3 {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    h2 { font-size: clamp(1.35rem, 3vw, 2rem); }
+    h3 { font-size: 1.05rem; }
+
+    .muted {
+      color: var(--muted);
+      line-height: 1.65;
+      margin: 6px 0 0;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn {
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.07);
+      min-height: 42px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.11);
+    }
+
+    .btn:disabled {
+      opacity: 0.42;
+      cursor: not-allowed;
+    }
+
+    .primary {
+      background: linear-gradient(135deg, #f2c14e, #ff8b5f);
+      border-color: transparent;
+      color: #171e24;
+    }
+
+    .danger {
+      color: #ffd7d2;
+      border-color: rgba(255, 107, 95, 0.42);
+      background: rgba(255, 107, 95, 0.12);
+    }
+
+    .sync-status {
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 9px 12px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 0.9rem;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .sync-status.online {
+      color: var(--green);
+      border-color: rgba(123, 216, 143, 0.45);
+      background: rgba(123, 216, 143, 0.1);
+    }
+
+    .sync-status.offline {
+      color: #ffd7d2;
+      border-color: rgba(255, 107, 95, 0.42);
+      background: rgba(255, 107, 95, 0.12);
+    }
+
+    .match-tabs, .game-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .game-tabs {
+      margin-top: -8px;
+    }
+
+    .match-tab, .game-tab {
+      border: 1px solid var(--line);
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 8px;
+      padding: 10px 13px;
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    .match-tab.active, .game-tab.active {
+      border-color: rgba(242, 193, 78, 0.7);
+      color: var(--gold);
+      background: rgba(242, 193, 78, 0.1);
+    }
+
+    .series-summary {
+      border: 1px solid rgba(78, 205, 196, 0.28);
+      background: rgba(78, 205, 196, 0.08);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 18px;
+      color: var(--text);
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      font-weight: 800;
+    }
+
+    .series-summary span {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .team-picker {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 10px;
+      align-items: end;
+      margin-top: 12px;
+    }
+
+    .team-picker .vs {
+      color: var(--muted);
+      font-weight: 900;
+      padding-bottom: 11px;
+    }
+
+    .team-picker select {
+      min-width: 0;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .step-card {
+      min-height: 248px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.035);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .step-number {
+      width: 30px;
+      height: 30px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: var(--surface-2);
+      color: var(--teal);
+      font-weight: 900;
+      margin-right: 8px;
+    }
+
+    .draw-box {
+      min-height: 92px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      background: #12191f;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 16px;
+      color: var(--muted);
+      line-height: 1.55;
+      font-weight: 800;
+    }
+
+    .draw-box.done {
+      color: var(--text);
+      border-color: rgba(78, 205, 196, 0.58);
+      box-shadow: inset 0 0 0 1px rgba(78, 205, 196, 0.2);
+    }
+
+    .draw-box.spinning {
+      animation: pulse 0.42s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulse {
+      from { border-color: rgba(242, 193, 78, 0.25); }
+      to { border-color: rgba(242, 193, 78, 0.95); box-shadow: 0 0 30px rgba(242, 193, 78, 0.2); }
+    }
+
+    .mode-pool, .map-list, .ban-grid {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.045);
+      color: var(--muted);
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .chip.used {
+      color: #62717b;
+      text-decoration: line-through;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .chip.selected {
+      color: #12191f;
+      background: var(--teal);
+      border-color: transparent;
+    }
+
+    .chip.banned {
+      color: #ffd7d2;
+      background: rgba(255, 107, 95, 0.14);
+      border-color: rgba(255, 107, 95, 0.5);
+      text-decoration: line-through;
+    }
+
+    .ban-option {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 10px;
+      min-height: 42px;
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    .ban-option.active {
+      background: rgba(255, 107, 95, 0.15);
+      border-color: rgba(255, 107, 95, 0.6);
+      color: #ffd7d2;
+    }
+
+    .select-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .field label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.86rem;
+      margin-bottom: 6px;
+      font-weight: 800;
+    }
+
+    select {
+      width: 100%;
+      min-height: 42px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      color: var(--text);
+      background: #12191f;
+      padding: 8px 10px;
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .result-card {
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: none;
+    }
+
+    .result-card strong {
+      color: var(--gold);
+    }
+
+    .catalog {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+    }
+
+    .catalog-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .catalog-card.used {
+      opacity: 0.58;
+      border-color: rgba(255, 107, 95, 0.45);
+      background: rgba(255, 107, 95, 0.07);
+    }
+
+    .catalog-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      font-weight: 900;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    .used-label {
+      border-radius: 999px;
+      padding: 4px 8px;
+      background: rgba(255, 107, 95, 0.16);
+      color: #ffd7d2;
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    .winner-controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .score-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--green);
+      font-weight: 900;
+      margin-top: 10px;
+    }
+
+    .history {
+      display: grid;
+      gap: 10px;
+    }
+
+    .history-row {
+      box-shadow: none;
+      border-radius: 8px;
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 120px 1fr auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .history-row .tag {
+      color: var(--teal);
+      font-weight: 900;
+    }
+
+    .history-row .detail {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .empty {
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      color: var(--muted);
+      text-align: center;
+      padding: 18px;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 22px;
+      transform: translateX(-50%) translateY(20px);
+      opacity: 0;
+      pointer-events: none;
+      background: #ecf4f3;
+      color: #11181d;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-weight: 900;
+      box-shadow: var(--shadow);
+      transition: 0.2s ease;
+      z-index: 20;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 920px) {
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .layout { grid-template-columns: 1fr; }
+      .rail { position: static; }
+      .grid { grid-template-columns: 1fr; }
+      .history-row { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      body { padding: 18px 10px 28px; }
+      .panel-head, .toolbar { align-items: stretch; flex-direction: column; }
+      .btn, .match-tab, .game-tab, .stage-btn { width: 100%; }
+      .select-row { grid-template-columns: 1fr; }
+      .team-picker { grid-template-columns: 1fr; }
+      .team-picker .vs { padding-bottom: 0; text-align: center; }
+      .step-card { min-height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div>
+        <h1>荒野亂鬥賽事抽籤系統</h1>
+        <p class="subtitle">四強、季軍賽、冠軍賽皆為 BO3 星光戰。每一戰先抽模式，雙方可各禁用一張地圖，再由剩餘地圖抽出比賽地圖。</p>
+      </div>
+      <div class="rule-pill">全賽段 BO3 星光戰</div>
+    </header>
+
+    <div class="layout">
+      <nav class="rail" id="stageNav" aria-label="賽段"></nav>
+
+      <section>
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="eyebrow" id="stageType">賽段</div>
+              <h2 id="stageTitle">四強賽</h2>
+              <p class="muted" id="stageHelp"></p>
+            </div>
+            <div class="toolbar">
+              <span class="sync-status" id="syncStatus">單機模式</span>
+              <button class="btn" id="copyBtn" type="button">複製目前賽段結果</button>
+              <button class="btn danger" id="resetStageBtn" type="button">重置目前賽段</button>
+            </div>
+          </div>
+
+          <div class="match-tabs" id="matchTabs"></div>
+          <div class="series-summary" id="seriesSummary"></div>
+          <div class="game-tabs" id="gameTabs"></div>
+
+          <div class="grid">
+            <article class="step-card">
+              <div>
+                <h3><span class="step-number">1</span>抽模式</h3>
+                <p class="muted">本 BO3 對戰已抽過的模式不會再次出現。</p>
+              </div>
+              <div class="draw-box" id="modeBox">等待抽模式</div>
+              <button class="btn primary" id="drawModeBtn" type="button">抽模式</button>
+            </article>
+
+            <article class="step-card">
+              <div>
+                <h3><span class="step-number">2</span>禁用地圖</h3>
+                <p class="muted">未選擇即視為放棄權益。</p>
+              </div>
+              <div>
+                <div class="select-row">
+                  <div class="field">
+                    <label for="banA" id="banALabel">隊伍 A 禁用</label>
+                    <select id="banA" disabled></select>
+                  </div>
+                  <div class="field">
+                    <label for="banB" id="banBLabel">隊伍 B 禁用</label>
+                    <select id="banB" disabled></select>
+                  </div>
+                </div>
+                <div class="map-list" id="availableMaps" style="margin-top: 12px;"></div>
+              </div>
+              <button class="btn" id="confirmBanBtn" type="button" disabled>確認禁圖</button>
+            </article>
+
+            <article class="step-card">
+              <div>
+                <h3><span class="step-number">3</span>抽地圖</h3>
+                <p class="muted">從未被禁用的地圖中決定本輪地圖。</p>
+              </div>
+              <div class="draw-box" id="mapBox">等待禁圖確認</div>
+              <button class="btn primary" id="drawMapBtn" type="button" disabled>抽地圖</button>
+            </article>
+          </div>
+        </div>
+
+        <div class="panel" id="bo3Panel">
+          <div class="panel-head">
+            <div>
+              <div class="eyebrow">BO3 勝場</div>
+              <h2>BO3 星光戰紀錄</h2>
+              <p class="muted">星光戰每一戰本身為三戰兩勝；此處記錄最多三戰，先取得兩勝者獲勝。</p>
+            </div>
+            <div class="score-badge" id="bo3Score">隊伍 A 0 : 0 隊伍 B</div>
+          </div>
+          <div class="result-grid" id="bo3Cards"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="eyebrow">模式池</div>
+              <h2>目前 BO3 模式狀態</h2>
+            </div>
+          </div>
+          <div class="mode-pool" id="modePool"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="eyebrow">完整清單</div>
+              <h2>全部模式與地圖</h2>
+              <p class="muted">已使用過的模式會整組標記，代表本 BO3 對戰後續不會再抽到該模式與其地圖。</p>
+            </div>
+          </div>
+          <div class="catalog" id="fullCatalog"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="eyebrow">抽籤結果</div>
+              <h2>目前賽段紀錄</h2>
+            </div>
+          </div>
+          <div class="history" id="history"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const MODES = [
+      { name: "寶石爭奪賽", maps: ["寶石要塞", "地下礦坑", "水晶遊戲場"] },
+      { name: "亂鬥足球", maps: ["三重威脅", "中心舞台", "夢幻彈珠"] },
+      { name: "據點搶奪賽", maps: ["避稅區", "平行遊戲", "金色海灣"] },
+      { name: "積分爭奪賽", maps: ["1點35", "步行熱沙", "時光飛逝"] },
+      { name: "極限淘汰賽", maps: ["空曠荒野", "搖滾蓓爾", "新地平線"] }
+    ];
+
+    const TEAMS = [
+      "同志大遊行",
+      "旮旯給木裡不是這樣",
+      "陽光男子壓路機",
+      "秉愛61疄"
+    ];
+
+    const STAGES = [
+      {
+        id: "semis",
+        title: "四強賽",
+        type: "四強",
+        help: "四強兩組各自進行 BO3 星光戰；每組的模式池獨立計算。",
+        series: [
+          { title: "四強 A 組", teamA: "同志大遊行", teamB: "旮旯給木裡不是這樣" },
+          { title: "四強 B 組", teamA: "陽光男子壓路機", teamB: "秉愛61疄" }
+        ]
+      },
+      {
+        id: "third",
+        title: "季軍賽",
+        type: "季軍",
+        help: "季軍賽同樣採 BO3 星光戰，模式池獨立計算。",
+        series: [{ title: "季軍賽", teamA: "季軍隊伍 A", teamB: "季軍隊伍 B", selectableTeams: true }]
+      },
+      {
+        id: "final",
+        title: "冠軍賽",
+        type: "冠軍",
+        help: "冠軍賽同樣採 BO3 星光戰，最多三戰，先取得兩勝者獲勝。",
+        series: [{ title: "冠軍賽", teamA: "冠軍隊伍 A", teamB: "冠軍隊伍 B", selectableTeams: true }]
+      }
+    ];
+
+    const freshGame = (number) => ({
+      name: `第 ${number} 戰`,
+      mode: "",
+      map: "",
+      banA: "",
+      banB: "",
+      bansConfirmed: false,
+      winner: ""
+    });
+
+    const freshSeries = (series) => ({
+      ...series,
+      usedModes: [],
+      games: [freshGame(1), freshGame(2), freshGame(3)]
+    });
+
+    const state = {
+      currentStage: "semis",
+      currentSeries: 0,
+      currentGame: 0,
+      spinning: false,
+      stages: Object.fromEntries(STAGES.map(stage => [
+        stage.id,
+        { series: stage.series.map(freshSeries) }
+      ]))
+    };
+
+    const sync = {
+      enabled: location.protocol === "http:" || location.protocol === "https:",
+      clientId: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
+      applyingRemote: false,
+      lastVersion: 0,
+      timer: null
+    };
+
+    const el = {
+      stageNav: document.getElementById("stageNav"),
+      stageType: document.getElementById("stageType"),
+      stageTitle: document.getElementById("stageTitle"),
+      stageHelp: document.getElementById("stageHelp"),
+      matchTabs: document.getElementById("matchTabs"),
+      seriesSummary: document.getElementById("seriesSummary"),
+      gameTabs: document.getElementById("gameTabs"),
+      modeBox: document.getElementById("modeBox"),
+      mapBox: document.getElementById("mapBox"),
+      modePool: document.getElementById("modePool"),
+      fullCatalog: document.getElementById("fullCatalog"),
+      availableMaps: document.getElementById("availableMaps"),
+      history: document.getElementById("history"),
+      banALabel: document.getElementById("banALabel"),
+      banBLabel: document.getElementById("banBLabel"),
+      banA: document.getElementById("banA"),
+      banB: document.getElementById("banB"),
+      drawModeBtn: document.getElementById("drawModeBtn"),
+      confirmBanBtn: document.getElementById("confirmBanBtn"),
+      drawMapBtn: document.getElementById("drawMapBtn"),
+      resetStageBtn: document.getElementById("resetStageBtn"),
+      copyBtn: document.getElementById("copyBtn"),
+      syncStatus: document.getElementById("syncStatus"),
+      bo3Cards: document.getElementById("bo3Cards"),
+      bo3Score: document.getElementById("bo3Score"),
+      toast: document.getElementById("toast")
+    };
+
+    function stageDef() {
+      return STAGES.find(stage => stage.id === state.currentStage);
+    }
+
+    function stageState() {
+      return state.stages[state.currentStage];
+    }
+
+    function seriesState() {
+      return stageState().series[state.currentSeries];
+    }
+
+    function gameState() {
+      return seriesState().games[state.currentGame];
+    }
+
+    function modeData(name) {
+      return MODES.find(mode => mode.name === name);
+    }
+
+    function randomItem(items) {
+      const values = new Uint32Array(1);
+      crypto.getRandomValues(values);
+      return items[values[0] % items.length];
+    }
+
+    function toast(message) {
+      el.toast.textContent = message;
+      el.toast.classList.add("show");
+      window.clearTimeout(toast.timer);
+      toast.timer = window.setTimeout(() => el.toast.classList.remove("show"), 1800);
+    }
+
+    function setSyncStatus(text, mode = "") {
+      el.syncStatus.textContent = text;
+      el.syncStatus.classList.remove("online", "offline");
+      if (mode) el.syncStatus.classList.add(mode);
+    }
+
+    function exportSyncState(reason = "update") {
+      return {
+        clientId: sync.clientId,
+        version: Date.now(),
+        reason,
+        stages: state.stages
+      };
+    }
+
+    function scheduleSync(reason = "update") {
+      if (!sync.enabled || sync.applyingRemote) return;
+      window.clearTimeout(sync.timer);
+      sync.timer = window.setTimeout(() => pushSync(reason), 140);
+    }
+
+    async function pushSync(reason = "update") {
+      if (!sync.enabled || sync.applyingRemote) return;
+      try {
+        const payload = exportSyncState(reason);
+        sync.lastVersion = payload.version;
+        const response = await fetch("/api/state", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) throw new Error("sync failed");
+        setSyncStatus("同步中", "online");
+      } catch (error) {
+        setSyncStatus("同步離線", "offline");
+      }
+    }
+
+    async function initSync() {
+      if (!sync.enabled) {
+        setSyncStatus("單機模式");
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/state");
+        if (response.ok) {
+          const remote = await response.json();
+          if (remote && remote.stages) {
+            sync.applyingRemote = true;
+            state.stages = remote.stages;
+            sync.lastVersion = remote.version || 0;
+            render();
+            sync.applyingRemote = false;
+          }
+        }
+        setSyncStatus("同步中", "online");
+      } catch (error) {
+        setSyncStatus("同步離線", "offline");
+      }
+
+      const events = new EventSource("/events");
+      events.onopen = () => setSyncStatus("同步中", "online");
+      events.onerror = () => setSyncStatus("同步離線", "offline");
+      events.onmessage = (event) => {
+        const remote = JSON.parse(event.data);
+        if (!remote.stages || remote.clientId === sync.clientId || remote.version <= sync.lastVersion) return;
+        sync.applyingRemote = true;
+        state.stages = remote.stages;
+        sync.lastVersion = remote.version;
+        render();
+        sync.applyingRemote = false;
+        setSyncStatus("已收到更新", "online");
+      };
+    }
+
+    function spin(box, items, finalText, callback) {
+      state.spinning = true;
+      setControlsDisabled(true);
+      box.classList.remove("done");
+      box.classList.add("spinning");
+      let tick = 0;
+      const timer = window.setInterval(() => {
+        box.textContent = items[tick % items.length];
+        tick += 1;
+      }, 70);
+
+      window.setTimeout(() => {
+        window.clearInterval(timer);
+        box.classList.remove("spinning");
+        box.classList.add("done");
+        box.textContent = finalText;
+        state.spinning = false;
+        callback();
+        render();
+      }, 950);
+    }
+
+    function setControlsDisabled(disabled) {
+      el.drawModeBtn.disabled = disabled;
+      el.confirmBanBtn.disabled = disabled;
+      el.drawMapBtn.disabled = disabled;
+      el.banA.disabled = disabled;
+      el.banB.disabled = disabled;
+    }
+
+    function remainingModes() {
+      return MODES
+        .map(mode => mode.name)
+        .filter(name => !seriesState().usedModes.includes(name));
+    }
+
+    function availableMaps(game) {
+      if (!game.mode) return [];
+      return modeData(game.mode).maps.filter(map => map !== game.banA && map !== game.banB);
+    }
+
+    function bo3Totals(series = seriesState()) {
+      const totals = { A: 0, B: 0 };
+      series.games.forEach(game => {
+        if (game.winner === series.teamA) totals.A += 1;
+        if (game.winner === series.teamB) totals.B += 1;
+      });
+      return totals;
+    }
+
+    function bo3Finished(series = seriesState()) {
+      const totals = bo3Totals(series);
+      return totals.A >= 2 || totals.B >= 2;
+    }
+
+    function drawMode() {
+      const game = gameState();
+      const series = seriesState();
+      if (game.mode) {
+        const oldIndex = series.usedModes.indexOf(game.mode);
+        if (oldIndex >= 0) series.usedModes.splice(oldIndex, 1);
+      }
+
+      const pool = remainingModes();
+      if (!pool.length) {
+        toast("此 BO3 的模式已全部抽完");
+        return;
+      }
+
+      const selected = randomItem(pool);
+      spin(el.modeBox, pool, selected, () => {
+        Object.assign(game, {
+          mode: selected,
+          map: "",
+          banA: "",
+          banB: "",
+          bansConfirmed: false,
+          winner: ""
+        });
+        series.usedModes.push(selected);
+        scheduleSync("draw-mode");
+        toast("已抽出模式：" + selected);
+      });
+    }
+
+    function confirmBans() {
+      const game = gameState();
+      if (!game.mode) return;
+      game.banA = el.banA.value;
+      game.banB = el.banB.value;
+      game.bansConfirmed = true;
+      game.map = "";
+      render();
+      scheduleSync("confirm-bans");
+      toast("禁圖已確認");
+    }
+
+    function drawMap() {
+      const game = gameState();
+      const pool = availableMaps(game);
+      if (!pool.length) {
+        toast("沒有可抽地圖，請調整禁用選擇");
+        return;
+      }
+      const selected = randomItem(pool);
+      spin(el.mapBox, pool, selected, () => {
+        game.map = selected;
+        scheduleSync("draw-map");
+        toast("已抽出地圖：" + selected);
+      });
+    }
+
+    function setWinner(winner, gameIndex = state.currentGame) {
+      const game = seriesState().games[gameIndex];
+      game.winner = game.winner === winner ? "" : winner;
+      render();
+      scheduleSync("set-winner");
+    }
+
+    function setSeriesTeam(slot, team) {
+      const series = seriesState();
+      const otherSlot = slot === "teamA" ? "teamB" : "teamA";
+      if (team && team === series[otherSlot]) {
+        toast("兩邊不能選同一隊");
+        render();
+        return;
+      }
+
+      const oldTeam = series[slot];
+      series[slot] = team || (slot === "teamA" ? "隊伍 A" : "隊伍 B");
+      series.games.forEach(game => {
+        if (game.winner === oldTeam) game.winner = series[slot];
+      });
+      render();
+      scheduleSync("set-series-team");
+    }
+
+    function setStage(stageId) {
+      state.currentStage = stageId;
+      state.currentSeries = 0;
+      state.currentGame = 0;
+      render();
+    }
+
+    function setSeries(index) {
+      state.currentSeries = index;
+      state.currentGame = 0;
+      render();
+    }
+
+    function setGame(index) {
+      state.currentGame = index;
+      render();
+    }
+
+    function resetStage() {
+      const stage = stageDef();
+      state.stages[stage.id] = { series: stage.series.map(freshSeries) };
+      state.currentSeries = 0;
+      state.currentGame = 0;
+      render();
+      scheduleSync("reset-stage");
+      toast(stage.title + "已重置");
+    }
+
+    async function copyStage() {
+      const text = buildStageSummary();
+      try {
+        await navigator.clipboard.writeText(text);
+        toast("已複製結果");
+      } catch (error) {
+        toast("瀏覽器未允許複製，結果已顯示在紀錄區");
+      }
+    }
+
+    function buildStageSummary() {
+      const stage = stageDef();
+      const lines = [stage.title + " BO3 抽籤結果"];
+      stageState().series.forEach(series => {
+        const totals = bo3Totals(series);
+        lines.push(`${series.title}：${series.teamA} ${totals.A} : ${totals.B} ${series.teamB}`);
+        series.games.forEach((game, index) => {
+          lines.push(`  第 ${index + 1} 戰：${game.mode || "未抽模式"} / ${game.map || "未抽地圖"}`);
+          if (game.mode) lines.push(`    禁圖：${series.teamA} ${game.banA || "放棄"}，${series.teamB} ${game.banB || "放棄"}`);
+          if (game.winner) lines.push(`    勝方：${game.winner}`);
+        });
+      });
+      return lines.join("\n");
+    }
+
+    function renderStageNav() {
+      el.stageNav.innerHTML = "";
+      STAGES.forEach(stage => {
+        const stageData = state.stages[stage.id];
+        const done = stageData.series.reduce((sum, series) => (
+          sum + series.games.filter(game => game.mode && game.map).length
+        ), 0);
+        const total = stageData.series.length * 3;
+        const button = document.createElement("button");
+        button.className = "stage-btn" + (stage.id === state.currentStage ? " active" : "");
+        button.type = "button";
+        button.innerHTML = `<span>${stage.title}</span><span class="stage-count">${done}/${total}</span>`;
+        button.addEventListener("click", () => setStage(stage.id));
+        el.stageNav.appendChild(button);
+      });
+    }
+
+    function renderSeriesTabs() {
+      el.matchTabs.innerHTML = "";
+      stageState().series.forEach((series, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "match-tab" + (index === state.currentSeries ? " active" : "");
+        button.textContent = series.title;
+        button.addEventListener("click", () => setSeries(index));
+        el.matchTabs.appendChild(button);
+      });
+    }
+
+    function renderGameTabs() {
+      el.gameTabs.innerHTML = "";
+      seriesState().games.forEach((game, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "game-tab" + (index === state.currentGame ? " active" : "");
+        button.textContent = `${game.name}${game.map ? " ✓" : ""}`;
+        button.addEventListener("click", () => setGame(index));
+        el.gameTabs.appendChild(button);
+      });
+    }
+
+    function renderSeriesSummary() {
+      const series = seriesState();
+      const totals = bo3Totals(series);
+      const finalText = totals.A >= 2 ? `${series.teamA} 獲勝` : totals.B >= 2 ? `${series.teamB} 獲勝` : "尚未分出勝負";
+      el.seriesSummary.innerHTML = `
+        <div>${series.teamA} <span>VS</span> ${series.teamB}</div>
+        <div>${totals.A} : ${totals.B} <span>${finalText}</span></div>
+      `;
+
+      if (!series.selectableTeams) return;
+
+      const picker = document.createElement("div");
+      picker.className = "team-picker";
+      picker.innerHTML = `
+        <div class="field">
+          <label for="seriesTeamA">左側隊伍</label>
+          <select id="seriesTeamA" data-team-slot="teamA">
+            <option value="">選擇隊伍</option>
+            ${TEAMS.map(team => `<option value="${team}"${team === series.teamA ? " selected" : ""}>${team}</option>`).join("")}
+          </select>
+        </div>
+        <div class="vs">VS</div>
+        <div class="field">
+          <label for="seriesTeamB">右側隊伍</label>
+          <select id="seriesTeamB" data-team-slot="teamB">
+            <option value="">選擇隊伍</option>
+            ${TEAMS.map(team => `<option value="${team}"${team === series.teamB ? " selected" : ""}>${team}</option>`).join("")}
+          </select>
+        </div>
+      `;
+      picker.querySelectorAll("[data-team-slot]").forEach(select => {
+        select.addEventListener("change", () => setSeriesTeam(select.dataset.teamSlot, select.value));
+      });
+      el.seriesSummary.appendChild(picker);
+    }
+
+    function renderModePool() {
+      el.modePool.innerHTML = "";
+      const used = seriesState().usedModes;
+      MODES.forEach(mode => {
+        const chip = document.createElement("span");
+        chip.className = "chip" + (used.includes(mode.name) ? " used" : "");
+        chip.textContent = used.includes(mode.name) ? `${mode.name} 已使用` : mode.name;
+        el.modePool.appendChild(chip);
+      });
+    }
+
+    function renderFullCatalog() {
+      el.fullCatalog.innerHTML = "";
+      const used = seriesState().usedModes;
+      MODES.forEach(mode => {
+        const card = document.createElement("div");
+        const isUsed = used.includes(mode.name);
+        card.className = "catalog-card" + (isUsed ? " used" : "");
+        card.innerHTML = `
+          <div class="catalog-title">
+            <span>${mode.name}</span>
+            ${isUsed ? '<span class="used-label">已使用，不再抽取</span>' : ""}
+          </div>
+          <div class="map-list">
+            ${mode.maps.map(map => `<span class="chip${isUsed ? " used" : ""}">${map}</span>`).join("")}
+          </div>
+        `;
+        el.fullCatalog.appendChild(card);
+      });
+    }
+
+    function renderBanOptions() {
+      const game = gameState();
+      const maps = game.mode ? modeData(game.mode).maps : [];
+      const options = [`<option value="">放棄禁用</option>`]
+        .concat(maps.map(map => `<option value="${map}">${map}</option>`))
+        .join("");
+      el.banA.innerHTML = options;
+      el.banB.innerHTML = options;
+      el.banA.value = game.banA;
+      el.banB.value = game.banB;
+      el.banALabel.textContent = seriesState().teamA + " 禁用";
+      el.banBLabel.textContent = seriesState().teamB + " 禁用";
+    }
+
+    function renderMapList() {
+      const game = gameState();
+      el.availableMaps.innerHTML = "";
+      if (!game.mode) {
+        el.availableMaps.innerHTML = `<span class="chip">先抽模式</span>`;
+        return;
+      }
+
+      const previewBanA = el.banA.value;
+      const previewBanB = el.banB.value;
+      modeData(game.mode).maps.forEach(map => {
+        const chip = document.createElement("span");
+        const banned = map === previewBanA || map === previewBanB;
+        chip.className = "chip" + (map === game.map ? " selected" : "") + (banned ? " banned" : "");
+        chip.textContent = map;
+        el.availableMaps.appendChild(chip);
+      });
+    }
+
+    function renderCurrentDraw() {
+      const game = gameState();
+      const lockedByBo3 = bo3Finished() && !game.winner;
+
+      el.modeBox.textContent = game.mode || "等待抽模式";
+      el.modeBox.classList.toggle("done", Boolean(game.mode));
+      el.mapBox.textContent = game.map || (game.bansConfirmed ? "等待抽地圖" : "等待禁圖確認");
+      el.mapBox.classList.toggle("done", Boolean(game.map));
+
+      renderBanOptions();
+      renderMapList();
+
+      el.drawModeBtn.disabled = state.spinning || lockedByBo3 || (!remainingModes().length && !game.mode);
+      el.banA.disabled = state.spinning || !game.mode || lockedByBo3;
+      el.banB.disabled = state.spinning || !game.mode || lockedByBo3;
+      el.confirmBanBtn.disabled = state.spinning || !game.mode || lockedByBo3;
+      el.drawMapBtn.disabled = state.spinning || !game.mode || !game.bansConfirmed || lockedByBo3;
+    }
+
+    function renderHistory() {
+      el.history.innerHTML = "";
+      const drawn = stageState().series.some(series => series.games.some(game => game.mode || game.map));
+      if (!drawn) {
+        el.history.innerHTML = `<div class="empty">尚無抽籤紀錄</div>`;
+        return;
+      }
+
+      stageState().series.forEach((series, seriesIndex) => {
+        series.games.forEach((game, gameIndex) => {
+          if (!game.mode && !game.map) return;
+          const row = document.createElement("div");
+          row.className = "history-row";
+          const bans = game.mode
+            ? `禁圖：${series.teamA} ${game.banA || "放棄"}，${series.teamB} ${game.banB || "放棄"}`
+            : "尚未禁圖";
+          const winner = game.winner ? `<div class="score-badge">勝方：${game.winner}</div>` : "";
+          row.innerHTML = `
+            <div class="tag">${series.title}<br>${game.name}</div>
+            <div class="detail">
+              ${series.teamA} VS ${series.teamB}<br>
+              模式：<strong>${game.mode || "未抽"}</strong><br>
+              地圖：<strong>${game.map || "未抽"}</strong><br>
+              ${bans}
+              ${winner}
+            </div>
+            <button class="btn" type="button">查看</button>
+          `;
+          row.querySelector("button").addEventListener("click", () => {
+            state.currentSeries = seriesIndex;
+            state.currentGame = gameIndex;
+            render();
+          });
+          el.history.appendChild(row);
+        });
+      });
+    }
+
+    function renderBo3() {
+      const series = seriesState();
+      const totals = bo3Totals(series);
+      const finalWinner = totals.A >= 2 ? `${series.teamA} 獲勝` : totals.B >= 2 ? `${series.teamB} 獲勝` : "尚未分出勝負";
+      el.bo3Score.textContent = `${series.teamA} ${totals.A} : ${totals.B} ${series.teamB}，${finalWinner}`;
+      el.bo3Cards.innerHTML = "";
+
+      series.games.forEach((game, index) => {
+        const card = document.createElement("div");
+        card.className = "result-card";
+        card.innerHTML = `
+          <h3>${game.name}</h3>
+          <p class="muted">模式：<strong>${game.mode || "未抽"}</strong><br>地圖：<strong>${game.map || "未抽"}</strong></p>
+          <div class="winner-controls">
+            <button class="btn" type="button" data-winner="${series.teamA}" ${game.map ? "" : "disabled"}>${series.teamA} 勝</button>
+            <button class="btn" type="button" data-winner="${series.teamB}" ${game.map ? "" : "disabled"}>${series.teamB} 勝</button>
+          </div>
+        `;
+        card.querySelectorAll("[data-winner]").forEach(button => {
+          if (button.dataset.winner === game.winner) button.classList.add("primary");
+          button.addEventListener("click", () => {
+            state.currentGame = index;
+            setWinner(button.dataset.winner, index);
+          });
+        });
+        el.bo3Cards.appendChild(card);
+      });
+    }
+
+    function renderHeader() {
+      const stage = stageDef();
+      el.stageType.textContent = stage.type + "抽籤";
+      el.stageTitle.textContent = stage.title;
+      el.stageHelp.textContent = stage.help;
+    }
+
+    function render() {
+      renderHeader();
+      renderStageNav();
+      renderSeriesTabs();
+      renderSeriesSummary();
+      renderGameTabs();
+      renderModePool();
+      renderFullCatalog();
+      renderCurrentDraw();
+      renderHistory();
+      renderBo3();
+    }
+
+    el.drawModeBtn.addEventListener("click", drawMode);
+    el.confirmBanBtn.addEventListener("click", confirmBans);
+    el.drawMapBtn.addEventListener("click", drawMap);
+    el.resetStageBtn.addEventListener("click", resetStage);
+    el.copyBtn.addEventListener("click", copyStage);
+    el.banA.addEventListener("change", renderMapList);
+    el.banB.addEventListener("change", renderMapList);
+
+    render();
+    initSync();
+  </script>
+</body>
+</html>
